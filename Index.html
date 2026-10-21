@@ -7,16 +7,25 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body { background-color: #1a1a1a; color: #fff; font-family: 'Courier New', monospace; text-align: center; overflow: hidden; }
-        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        canvas { background-color: #2e8b57; border: 4px solid #4a3728; image-rendering: pixelated; width: 95vw; height: 60vh; max-width: 800px; }
+        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 10px; }
+        canvas { background-color: #2e8b57; border: 4px solid #4a3728; image-rendering: pixelated; width: 95vw; height: 45vh; max-width: 800px; }
         
-        /* Interfaz de Usuario */
-        .ui-panel { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 8px; font-size: 12px; text-align: left; }
-        .btn { background: #e67e22; color: #fff; border: none; padding: 10px 15px; margin: 5px; font-weight: bold; border-radius: 5px; cursor: pointer; }
+        /* Panel de Estado */
+        .ui-panel { background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; font-size: 11px; text-align: left; width: 95vw; max-width: 800px; display: flex; justify-content: space-around; margin-bottom: 5px; }
+        .btn { background: #e67e22; color: #fff; border: none; padding: 8px 12px; margin: 3px; font-weight: bold; border-radius: 5px; cursor: pointer; font-size: 12px; }
         .btn:active { background: #d35400; }
+
+        /* Controles de Movimiento en Pantalla */
+        .controls-container { display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(2, 60px); gap: 5px; justify-content: center; margin-top: 10px; }
+        .control-btn { background: #34495e; color: white; border: 2px solid #2c3e50; font-size: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .control-btn:active { background: #2980b9; }
+        .btn-up { grid-column: 2; grid-row: 1; }
+        .btn-left { grid-column: 1; grid-row: 2; }
+        .btn-down { grid-column: 2; grid-row: 2; }
+        .btn-right { grid-column: 3; grid-row: 2; }
         
-        /* Guía y Crafteo Modal */
-        #guide-modal { display: none; position: absolute; top: 5%; left: 5%; width: 90%; height: 85%; background: rgba(20, 20, 20, 0.95); border: 2px solid #e67e22; padding: 15px; overflow-y: auto; text-align: left; border-radius: 10px; }
+        /* Ventana de Guía */
+        #guide-modal { display: none; position: absolute; top: 5%; left: 5%; width: 90%; height: 85%; background: rgba(20, 20, 20, 0.95); border: 2px solid #e67e22; padding: 15px; overflow-y: auto; text-align: left; border-radius: 10px; z-index: 10; }
         #guide-modal h2 { color: #e67e22; margin-bottom: 10px; }
         #guide-modal h3 { color: #2ecc71; margin-top: 10px; }
         .close-btn { background: #c0392b; float: right; }
@@ -27,39 +36,45 @@
 <div id="game-container">
     <!-- Panel de Estado -->
     <div class="ui-panel">
-        <div>❤️ Vida: <span id="hp">100</span>/100</div>
-        <div>🛡️ Armadura: <span id="armor">0</span></div>
-        <div>🗡️ Arma: <span id="weapon">Puños</span></div>
-        <div>👥 Conectados por Wi-Fi: <span id="players">1</span></div>
+        <div>❤️ <span id="hp">100</span></div>
+        <div>🛡️ <span id="armor">0</span></div>
+        <div>🗡️ <span id="weapon">Puños</span></div>
+        <div>👥 <span id="players">1</span></div>
     </div>
 
     <!-- Lienzo del Juego -->
-    <canvas id="gameCanvas" width="400" height="300"></canvas>
+    <canvas id="gameCanvas" width="300" height="200"></canvas>
 
-    <!-- Controles en Pantalla (Para Celular) -->
-    <div style="margin-top: 10px;">
-        <button class="btn" onclick="openGuide()">📖 Guía & Crafteo</button>
+    <!-- Botones del Menú Principal -->
+    <div>
+        <button class="btn" onclick="openGuide()">📖 Guía</button>
         <button class="btn" onclick="customizeAvatar()">🎨 Avatar</button>
     </div>
 
-    <!-- Ventana de Guía y Recetas de Construcción -->
+    <!-- Controles Táctiles para Moverse -->
+    <div class="controls-container">
+        <button class="control-btn btn-up" ontouchstart="movePlayer(0, -2)" onmousedown="movePlayer(0, -2)">⬆️</button>
+        <button class="control-btn btn-left" ontouchstart="movePlayer(-2, 0)" onmousedown="movePlayer(-2, 0)">⬅️</button>
+        <button class="control-btn btn-down" ontouchstart="movePlayer(0, 2)" onmousedown="movePlayer(0, 2)">⬇️</button>
+        <button class="control-btn btn-right" ontouchstart="movePlayer(2, 0)" onmousedown="movePlayer(2, 0)">➡️</button>
+    </div>
+
+    <!-- Ventana de Guía y Recetas -->
     <div id="guide-modal">
-        <button class="btn close-btn" onclick="closeGuide()">X Cerrar</button>
-        <h2>📖 Guía de Supervivencia y Crafteo</h2>
-        <p>¡Bienvenido al juego! Explora, sobrevive a la noche y colabora con amigos en tu red Wi-Fi.</p>
+        <button class="btn close-btn" onclick="closeGuide()">X</button>
+        <h2>📖 Guía de Supervivencia</h2>
+        <p>Muévete con los botones de la pantalla, recolecta recursos y sobrevive.</p>
         
-        <h3>🗡️ Armas y Construcción</h3>
+        <h3>🗡️ Armas</h3>
         <ul>
-            <li><strong>Lanza de Madera:</strong> 5x Madera. (Ataque cuerpo a cuerpo de bajo rango).</li>
-            <li><strong>Espada de Piedra:</strong> 3x Piedra + 2x Madera. (Buen daño contra monstruos).</li>
-            <li><strong>Arco y Flechas:</strong> 4x Cuerda + 3x Madera. (Ataque a distancia).</li>
+            <li><strong>Lanza:</strong> 5 Madera</li>
+            <li><strong>Espada:</strong> 3 Piedra + 2 Madera</li>
         </ul>
 
-        <h3>👾 Criaturas y Jefes</h3>
+        <h3>👾 Criaturas</h3>
         <ul>
-            <li><strong>Peces y Ciervos (Pacíficos):</strong> Dan comida para recuperar vida.</li>
-            <li><strong>Lobos y Tiburones (Agresivos):</strong> Te atacarán si te acercas demasiado.</li>
-            <li><strong>Espectro Nocturno (Jefe):</strong> Aparece en la noche. ¡Derrótalos en equipo!</li>
+            <li>Ciervos y Peces (Pacíficos)</li>
+            <li>Lobos y Monstruos (Agresivos)</li>
         </ul>
     </div>
 </div>
@@ -68,48 +83,54 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Configuración del Jugador (Estilo Pixel / Habbo)
     let player = {
-        x: 180,
-        y: 130,
-        size: 16,
+        x: 140,
+        y: 90,
+        size: 14,
         color: '#3498db',
-        speed: 3
     };
 
-    // Bucle de Renderizado Básico (Dibuja al personaje en mapa pixel)
+    function movePlayer(dx, dy) {
+        player.x += dx * 4;
+        player.y += dy * 4;
+        // Limitar dentro del mapa
+        if (player.x < 0) player.x = 0;
+        if (player.x > canvas.width - player.size) player.x = canvas.width - player.size;
+        if (player.y < 0) player.y = 0;
+        if (player.y > canvas.height - player.size) player.y = canvas.height - player.size;
+    }
+
     function gameLoop() {
-        // Limpiar pantalla (Pasto)
+        // Césped
         ctx.fillStyle = '#2ecc71';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Dibujar Rio / Agua
+        // Río / Agua inferior
         ctx.fillStyle = '#2980b9';
-        ctx.fillRect(0, 200, canvas.width, 100);
+        ctx.fillRect(0, 140, canvas.width, 60);
 
-        // Dibujar Jugador (Estilo Pixel Bloque)
+        // Dibujar Jugador Estilo Pixel
         ctx.fillStyle = player.color;
         ctx.fillRect(player.x, player.y, player.size, player.size);
-        // Ojos del Avatar
+        // Ojos
         ctx.fillStyle = '#fff';
-        ctx.fillRect(player.x + 3, player.y + 3, 3, 3);
-        ctx.fillRect(player.x + 10, player.y + 3, 3, 3);
+        ctx.fillRect(player.x + 2, player.y + 3, 2, 2);
+        ctx.fillRect(player.x + 8, player.y + 3, 2, 2);
 
         requestAnimationFrame(gameLoop);
     }
 
-    // Funciones de la Guía
     function openGuide() { document.getElementById('guide-modal').style.display = 'block'; }
     function closeGuide() { document.getElementById('guide-modal').style.display = 'none'; }
     
     function customizeAvatar() {
-        const colors = ['#3498db', '#e74c3c', '#f1c40f', '#9b59b6', '#1abc9c'];
+        const colors = ['#3498db', '#e74c3c', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22'];
         player.color = colors[Math.floor(Math.random() * colors.length)];
     }
 
-    // Iniciar el juego
     gameLoop();
 </script>
 
 </body>
 </html>
+
