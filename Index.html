@@ -8,7 +8,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body { background-color: #1a1a1a; color: #fff; font-family: 'Courier New', monospace; text-align: center; overflow: hidden; }
         #game-container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 10px; }
-        canvas { background-color: #2e8b57; border: 4px solid #4a3728; image-rendering: pixelated; width: 95vw; height: 45vh; max-width: 800px; }
+        canvas { background-color: #2e8b57; border: 4px solid #4a3728; image-rendering: pixelated; width: 95vw; height: 42vh; max-width: 800px; }
         
         /* Panel de Estado */
         .ui-panel { background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; font-size: 11px; text-align: left; width: 95vw; max-width: 800px; display: flex; justify-content: space-around; margin-bottom: 5px; }
@@ -16,7 +16,7 @@
         .btn:active { background: #d35400; }
 
         /* Controles de Movimiento en Pantalla */
-        .controls-container { display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(2, 60px); gap: 5px; justify-content: center; margin-top: 10px; }
+        .controls-container { display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(2, 60px); gap: 5px; justify-content: center; margin-top: 8px; }
         .control-btn { background: #34495e; color: white; border: 2px solid #2c3e50; font-size: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
         .control-btn:active { background: #2980b9; }
         .btn-up { grid-column: 2; grid-row: 1; }
@@ -39,7 +39,7 @@
         <div>❤️ <span id="hp">100</span></div>
         <div>🛡️ <span id="armor">0</span></div>
         <div>🗡️ <span id="weapon">Puños</span></div>
-        <div>👥 <span id="players">1</span></div>
+        <div>🥩 Comida: <span id="food">2</span></div>
     </div>
 
     <!-- Lienzo del Juego -->
@@ -49,32 +49,33 @@
     <div>
         <button class="btn" onclick="openGuide()">📖 Guía</button>
         <button class="btn" onclick="customizeAvatar()">🎨 Avatar</button>
+        <button class="btn" onclick="attackAction()">⚔️ Atacar</button>
     </div>
 
     <!-- Controles Táctiles para Moverse -->
     <div class="controls-container">
-        <button class="control-btn btn-up" ontouchstart="movePlayer(0, -2)" onmousedown="movePlayer(0, -2)">⬆️</button>
-        <button class="control-btn btn-left" ontouchstart="movePlayer(-2, 0)" onmousedown="movePlayer(-2, 0)">⬅️</button>
-        <button class="control-btn btn-down" ontouchstart="movePlayer(0, 2)" onmousedown="movePlayer(0, 2)">⬇️</button>
-        <button class="control-btn btn-right" ontouchstart="movePlayer(2, 0)" onmousedown="movePlayer(2, 0)">➡️</button>
+        <button class="control-btn btn-up" ontouchstart="movePlayer(0, -3)" onmousedown="movePlayer(0, -3)">⬆️</button>
+        <button class="control-btn btn-left" ontouchstart="movePlayer(-3, 0)" onmousedown="movePlayer(-3, 0)">⬅️</button>
+        <button class="control-btn btn-down" ontouchstart="movePlayer(0, 3)" onmousedown="movePlayer(0, 3)">⬇️</button>
+        <button class="control-btn btn-right" ontouchstart="movePlayer(3, 0)" onmousedown="movePlayer(3, 0)">➡️</button>
     </div>
 
     <!-- Ventana de Guía y Recetas -->
     <div id="guide-modal">
         <button class="btn close-btn" onclick="closeGuide()">X</button>
         <h2>📖 Guía de Supervivencia</h2>
-        <p>Muévete con los botones de la pantalla, recolecta recursos y sobrevive.</p>
+        <p>Muévete, evita o ataca a los monstruos (rojos) y caza animales pacíficos (marrones/azules).</p>
         
         <h3>🗡️ Armas</h3>
         <ul>
-            <li><strong>Lanza:</strong> 5 Madera</li>
+            <li><strong>Lanza:</strong> 5 Madera (Ataque corto)</li>
             <li><strong>Espada:</strong> 3 Piedra + 2 Madera</li>
         </ul>
 
-        <h3>👾 Criaturas</h3>
+        <h3>👾 Criaturas del Mundo</h3>
         <ul>
-            <li>Ciervos y Peces (Pacíficos)</li>
-            <li>Lobos y Monstruos (Agresivos)</li>
+            <li>🟢 Ciervos / 🐟 Peces: Pacíficos (dan comida).</li>
+            <li>🔴 Monstruos / Lobos: Agresivos (te restan vida si te tocan).</li>
         </ul>
     </div>
 </div>
@@ -88,20 +89,43 @@
         y: 90,
         size: 14,
         color: '#3498db',
+        hp: 100,
+        food: 2
     };
 
+    // Entidades del mundo (Criaturas, monstruos y animales acuáticos)
+    let entities = [
+        { x: 50, y: 50, type: 'deer', color: '#d35400', size: 10, dx: 1, dy: 0 },
+        { x: 220, y: 60, type: 'monster', color: '#c0392b', size: 12, dx: -1, dy: 1 },
+        { x: 100, y: 170, type: 'fish', color: '#f39c12', size: 8, dx: 2, dy: 0 }, // En el agua
+        { x: 250, y: 180, type: 'shark', color: '#7f8c8d', size: 12, dx: -1, dy: 0 } // En el agua
+    ];
+
     function movePlayer(dx, dy) {
-        player.x += dx * 4;
-        player.y += dy * 4;
-        // Limitar dentro del mapa
+        player.x += dx * 3;
+        player.y += dy * 3;
         if (player.x < 0) player.x = 0;
         if (player.x > canvas.width - player.size) player.x = canvas.width - player.size;
         if (player.y < 0) player.y = 0;
         if (player.y > canvas.height - player.size) player.y = canvas.height - player.size;
     }
 
-    function gameLoop() {
-        // Césped
+    function attackAction() {
+        // Simple lógica de ataque a criaturas cercanas
+        entities.forEach((ent, index) => {
+            let dist = Math.hypot(player.x - ent.x, player.y - ent.y);
+            if (dist < 25) {
+                if (ent.type === 'deer' || ent.type === 'fish') {
+                    player.food += 1;
+                }
+                entities.splice(index, 1); // Eliminar criatura cazada/derrotada
+            }
+        });
+        document.getElementById('food').innerText = player.food;
+    }
+
+    function updateGame() {
+        // Limpiar pantalla (Césped)
         ctx.fillStyle = '#2ecc71';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -109,14 +133,41 @@
         ctx.fillStyle = '#2980b9';
         ctx.fillRect(0, 140, canvas.width, 60);
 
-        // Dibujar Jugador Estilo Pixel
+        // Mover y dibujar entidades
+        entities.forEach(ent => {
+            ent.x += ent.dx;
+            ent.y += ent.dy;
+
+            // Rebote simple en los bordes
+            if (ent.x <= 0 || ent.x >= canvas.width - ent.size) ent.dx *= -1;
+            if (ent.type === 'fish' || ent.type === 'shark') {
+                if (ent.y <= 145 || ent.y >= canvas.height - ent.size) ent.dy *= -1;
+            } else {
+                if (ent.y <= 0 || ent.y >= 135) ent.dy *= -1;
+            }
+
+            // Colisión con el jugador (Daño si es monstruo)
+            let dist = Math.hypot(player.x - ent.x, player.y - ent.y);
+            if (dist < 12 && (ent.type === 'monster' || ent.type === 'shark')) {
+                player.hp -= 1;
+                document.getElementById('hp').innerText = player.hp;
+            }
+
+            // Dibujar criatura
+            ctx.fillStyle = ent.color;
+            ctx.fillRect(ent.x, ent.y, ent.size, ent.size);
+        });
+
+        // Dibujar Jugador
         ctx.fillStyle = player.color;
         ctx.fillRect(player.x, player.y, player.size, player.size);
-        // Ojos
         ctx.fillStyle = '#fff';
         ctx.fillRect(player.x + 2, player.y + 3, 2, 2);
         ctx.fillRect(player.x + 8, player.y + 3, 2, 2);
+    }
 
+    function gameLoop() {
+        updateGame();
         requestAnimationFrame(gameLoop);
     }
 
@@ -133,4 +184,5 @@
 
 </body>
 </html>
+
 
